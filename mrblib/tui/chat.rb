@@ -11,8 +11,9 @@ module TUI
     # @param [Integer, Symbol] assistant_fg
     # @param [Integer, Symbol] text_fg
     # @param [Integer, Symbol] bg
+    # @param [Boolean] show_roles
     # @param (see TUI::Widget#initialize)
-    def initialize(user_fg: :green, assistant_fg: :cyan, text_fg: :white, bg: :default, **kw)
+    def initialize(user_fg: :green, assistant_fg: :cyan, text_fg: :white, bg: :default, show_roles: true, **kw)
       super(**kw)
       @messages = []
       @scroll = 0
@@ -20,6 +21,7 @@ module TUI
       @assistant_fg = assistant_fg
       @text_fg = text_fg
       @bg = bg
+      @show_roles = show_roles
     end
 
     ##
@@ -159,11 +161,7 @@ module TUI
       return [] if text.nil?
       return [{text: text.to_s, fg: @text_fg, bg: @bg}] unless text.is_a?(Array)
       text.map do |segment|
-        {
-          text: segment[:text].to_s,
-          fg: segment[:fg] || @text_fg,
-          bg: segment[:bg] || @bg
-        }
+        {text: segment[:text].to_s, fg: segment[:fg] || @text_fg, bg: segment[:bg] || @bg}
       end
     end
 
@@ -209,7 +207,7 @@ module TUI
         width = [rw - 2, 1].max
         wrap_segments(text, width)
       else
-        fg = @text_fg
+        fg = @show_roles ? @text_fg : role_fg(role)
         wrap(text).map { |line| [{text: line, fg:, bg: @bg}] }
       end
     end
@@ -361,9 +359,15 @@ module TUI
     def rendered_rows
       rows = []
       @messages.each do |msg|
-        rows << {x: 0, fg: role_fg(msg[:role]), text: " #{msg[:role]}:"}
-        wrapped_rows(msg[:role], msg[:text]).each do |line|
-          rows << {x: 1, segments: [{text: " ", fg: @text_fg, bg: @bg}] + line}
+        if @show_roles
+          rows << {x: 0, fg: role_fg(msg[:role]), text: " #{msg[:role]}:"}
+          wrapped_rows(msg[:role], msg[:text]).each do |line|
+            rows << {x: 1, segments: [{text: " ", fg: @text_fg, bg: @bg}] + line}
+          end
+        else
+          wrapped_rows(msg[:role], msg[:text]).each do |line|
+            rows << {x: 0, segments: line}
+          end
         end
         rows << {x: 0, fg: @text_fg, text: ""}
       end
