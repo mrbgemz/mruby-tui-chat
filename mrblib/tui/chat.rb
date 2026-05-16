@@ -112,12 +112,8 @@ module TUI
       end
     end
 
-    def role_label(role)
-      @role_labels[role] || role.to_s
-    end
-
     def role_fg(role)
-      role == :user || role == "You" ? @user_fg : @assistant_fg
+      role == :user ? @user_fg : @assistant_fg
     end
 
     def total_rows
@@ -367,7 +363,7 @@ module TUI
       rows = []
       @messages.each do |msg|
         if @show_roles
-          label = role_label(msg[:role])
+          label = @role_labels[msg[:role]] || msg[:role].to_s
           rows << {x: 0, fg: role_fg(msg[:role]), text: " #{label}:"}
           wrapped_rows(msg[:role], msg[:text]).each do |line|
             rows << {x: 1, segments: [{text: " ", fg: @text_fg, bg: @bg}] + line}
