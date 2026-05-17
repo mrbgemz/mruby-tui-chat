@@ -15,7 +15,7 @@ module TUI
     # @param [Hash] labels  Map role symbols to display strings.
     # @param (see TUI::Widget#initialize)
     def initialize(user_fg: :green, assistant_fg: :cyan, text_fg: :white,
-                   bg: :default, roles: true, labels: {}, **kw)
+                   bg: :default, roles: true, labels: {}, max_width: nil, **kw)
       super(**kw)
       @messages = []
       @scroll = 0
@@ -25,6 +25,7 @@ module TUI
       @bg = bg
       @roles = roles
       @labels = labels
+      @max_width = max_width
     end
 
     ##
@@ -121,7 +122,7 @@ module TUI
     end
 
     def wrap(text)
-      width = [rw - 2, 1].max
+      width = content_width
       lines = []
       TUI::Utils.split(text, "\n", keep_empty: true).each do |paragraph|
         if paragraph.empty?
@@ -207,12 +208,17 @@ module TUI
 
     def wrapped_rows(role, text)
       if text.is_a?(Array)
-        width = [rw - 2, 1].max
+        width = content_width
         wrap_segments(text, width)
       else
         fg = @roles ? @text_fg : role_fg(role)
         wrap(text).map { |line| [{text: line, fg:, bg: @bg}] }
       end
+    end
+
+    def content_width
+      width = [rw - 2, 1].max
+      @max_width ? [width, @max_width.to_i].min : width
     end
 
     def wrap_segments(segments, width)
