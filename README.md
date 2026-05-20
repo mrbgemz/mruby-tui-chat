@@ -63,7 +63,7 @@ Add to your mruby build config:
 MRuby::Build.new("app") do |conf|
   conf.toolchain
   conf.gembox "default"
-  conf.gem github: "llmrb/mruby-tui-chat", branch: "main"
+  conf.gem github: "mrbgemz/mruby-tui-chat", branch: "main"
 end
 ```
 
