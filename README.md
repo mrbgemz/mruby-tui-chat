@@ -3,7 +3,8 @@
 mruby-tui-chat provides a conversation widget for
 [mruby-tui](https://github.com/llmrb/mruby-tui), optimized for
 AI chat interfaces. It supports word-wrapped text, role-prefixed
-messages, segmented rendering with colours, and scroll.
+messages, segmented rendering with colours, markdown AST content, and
+scroll.
 
 ## Quick start
 
@@ -22,6 +23,13 @@ chat = TUI::Chat.new
 chat.replace_last(:assistant, "")
 chat.append(:assistant, "Hello")
 chat.append(:assistant, " world")
+```
+
+#### Markdown AST
+
+```ruby
+ast = Markdown.new("# Hello\n\n**world**").ast
+chat.replace_last(:assistant, ast)
 ```
 
 #### Without role labels
@@ -47,7 +55,8 @@ streaming output where content arrives incrementally.
 
 **TUI::Chat#replace_last**<br>
 Replaces the last message for the given role. Used for
-updating a streaming response in place.
+updating a streaming response in place. Messages may be plain strings,
+segment arrays, or markdown AST hashes from mruby-markdown.
 
 **TUI::Chat#scroll_up**<br>
 Scrolls the view upward by one rendered row.

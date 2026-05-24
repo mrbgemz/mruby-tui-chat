@@ -32,10 +32,10 @@ module TUI
     # Append a message to the conversation.
     #
     # @param [Object] role
-    # @param [String, Array<Hash>] text
+    # @param [String, Array<Hash>, Hash] text
     # @return [void]
     def add(role, text)
-      @messages << {role: role, text: text}
+      @messages << {role: role, text: dup_text(text)}
       @scroll = 0
     end
 
@@ -44,7 +44,7 @@ module TUI
     # role, or create one. Used for streaming output.
     #
     # @param [Object] role
-    # @param [String, Array<Hash>] text
+    # @param [String, Array<Hash>, Hash] text
     # @return [void]
     def append(role, text)
       message = @messages[-1]
@@ -61,7 +61,7 @@ module TUI
     # Used for updating a streaming response in place.
     #
     # @param [Object] role
-    # @param [String, Array<Hash>] text
+    # @param [String, Array<Hash>, Hash] text
     # @return [void]
     def replace_last(role, text)
       message = @messages[-1]
@@ -150,6 +150,7 @@ module TUI
     end
 
     def merge_text(current, incoming)
+      return dup_text(incoming) if markdown_ast?(current) || markdown_ast?(incoming)
       if current.is_a?(Array) || incoming.is_a?(Array)
         normalize_segments(current) + normalize_segments(incoming)
       else
@@ -158,6 +159,7 @@ module TUI
     end
 
     def dup_text(text)
+      return text if markdown_ast?(text)
       text.is_a?(Array) ? normalize_segments(text) : text.to_s
     end
 
@@ -169,14 +171,25 @@ module TUI
       end
     end
 
+    ##
+    # @api private
+    # @param [Hash] row
+    # @param [Integer] dy
+    # @return [void]
     def render_row(row, dy)
       if row[:segments]
         x = ax + row[:x]
         row[:segments].each do |segment|
+          if segment[:hr]
+            TUI.hline(x, ay + dy, segment[:width].to_i, segment[:ch] || 0x2500,
+                      fg: segment[:fg], bg: segment[:bg] || @bg)
+            x += segment[:width].to_i
+            next
+          end
           text = segment[:text].to_s
           next if text.empty?
           TUI.print(x, ay + dy, segment[:fg], segment[:bg] || @bg, text)
-          x += text.length
+          x += TUI.char_length(text)
         end
       else
         TUI.print(ax + row[:x], ay + dy, row[:fg], @bg, row[:text])
@@ -207,8 +220,10 @@ module TUI
     end
 
     def wrapped_rows(role, text)
-      if text.is_a?(Array)
-        width = content_width
+      width = content_width
+      if markdown_ast?(text)
+        TUI::Markdown::Renderer.new(ast: text, width:, theme: markdown_theme(role)).rows
+      elsif text.is_a?(Array)
         wrap_segments(text, width)
       else
         fg = @roles ? @text_fg : role_fg(role)
@@ -219,6 +234,33 @@ module TUI
     def content_width
       width = [rw - 2, 1].max
       @max_width ? [width, @max_width.to_i].min : width
+    end
+
+    def markdown_theme(role)
+      fg = @roles ? @text_fg : role_fg(role)
+      {
+        fg:,
+        bg: @bg,
+        heading_fg: @assistant_fg,
+        code_fg: :yellow,
+        code_bg: @bg,
+        link_fg: :blue,
+        quote_fg: @assistant_fg,
+        rule_fg: @text_fg
+      }
+    end
+
+    ##
+    # @api private
+    # @param [Object] value
+    # @return [Boolean]
+    def markdown_ast?(value)
+      return false unless value.respond_to?(:[])
+      type = value[:type] if value.respond_to?(:[])
+      type = value["type"] if type.nil? && value.respond_to?(:[])
+      type == :document || type == "document"
+    rescue
+      false
     end
 
     def wrap_segments(segments, width)
