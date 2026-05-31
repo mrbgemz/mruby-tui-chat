@@ -90,6 +90,18 @@ module TUI
     end
 
     ##
+    # Return the viewport to the newest message.
+    #
+    # This is useful after user input should resume normal chat behaviour:
+    # new messages and streamed updates appear at the bottom instead of keeping
+    # the previous manual scroll offset.
+    #
+    # @return [void]
+    def follow!
+      @scroll = 0
+    end
+
+    ##
     # Render the visible portion of the conversation.
     # @return [void]
     def render

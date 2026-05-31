@@ -64,6 +64,11 @@ Scrolls the view upward by one rendered row.
 **TUI::Chat#scroll_down**<br>
 Scrolls the view downward by one rendered row.
 
+**TUI::Chat#follow!**<br>
+Returns the viewport to the newest message. This is useful after manual
+scrolling when new input or streamed output should resume following the bottom
+of the conversation.
+
 ## Integration
 
 Add to your mruby build config:
