@@ -246,6 +246,7 @@ module TUI
     def wrapped_rows(role, text)
       width = content_width
       if markdown_ast?(text)
+        width = [width - 1, 1].max if @roles
         TUI::Markdown::Renderer.new(ast: text, width:, theme: markdown_theme(role)).rows
       elsif text.is_a?(Array)
         wrap_segments(text, width)
