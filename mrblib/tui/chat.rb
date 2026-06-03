@@ -26,6 +26,8 @@ module TUI
       @roles = roles
       @labels = labels
       @max_width = max_width
+      @rendered_rows_cache = nil
+      @rendered_rows_width = nil
     end
 
     ##
@@ -37,6 +39,7 @@ module TUI
     def add(role, text)
       @messages << {role: role, text: dup_text(text)}
       @scroll = 0
+      invalidate_rows
     end
 
     ##
@@ -54,6 +57,7 @@ module TUI
         @messages << {role: role, text: dup_text(text)}
       end
       @scroll = 0
+      invalidate_rows
     end
 
     ##
@@ -71,6 +75,7 @@ module TUI
         @messages << {role: role, text: dup_text(text)}
       end
       @scroll = 0
+      invalidate_rows
     end
 
     ##
@@ -131,6 +136,11 @@ module TUI
 
     def total_rows
       rendered_rows.length
+    end
+
+    def invalidate_rows
+      @rendered_rows_cache = nil
+      @rendered_rows_width = nil
     end
 
     def wrap(text)
@@ -420,6 +430,9 @@ module TUI
     end
 
     def rendered_rows
+      width = content_width
+      return @rendered_rows_cache if @rendered_rows_cache && @rendered_rows_width == width
+
       rows = []
       @messages.each do |msg|
         if @roles
@@ -435,7 +448,8 @@ module TUI
         end
         rows << {x: 0, fg: @text_fg, text: ""}
       end
-      rows
+      @rendered_rows_width = width
+      @rendered_rows_cache = rows
     end
   end
 end
