@@ -53,6 +53,8 @@ module TUI
       message = @messages[-1]
       if message && message[:role] == role
         message[:text] = merge_text(message[:text], text)
+        message[:rows_cache] = nil
+        message[:rows_width] = nil
       else
         @messages << {role: role, text: dup_text(text)}
       end
@@ -71,6 +73,8 @@ module TUI
       message = @messages[-1]
       if message && message[:role] == role
         message[:text] = dup_text(text)
+        message[:rows_cache] = nil
+        message[:rows_width] = nil
       else
         @messages << {role: role, text: dup_text(text)}
       end
@@ -112,9 +116,7 @@ module TUI
     def render
       return if rw <= 0 || rh <= 0
       paint_background
-      rows = rendered_rows
-      start = [rows.length - rh - @scroll, 0].max
-      visible = rows[start, rh] || []
+      visible = visible_rows
       visible.each_with_index do |row, dy|
         render_row(row, dy)
       end
@@ -432,24 +434,50 @@ module TUI
     def rendered_rows
       width = content_width
       return @rendered_rows_cache if @rendered_rows_cache && @rendered_rows_width == width
-
       rows = []
       @messages.each do |msg|
-        if @roles
-          label = @labels[msg[:role]] || msg[:role].to_s
-          rows << {x: 0, fg: role_fg(msg[:role]), text: " #{label}:"}
-          wrapped_rows(msg[:role], msg[:text]).each do |line|
-            rows << {x: 1, segments: [{text: " ", fg: @text_fg, bg: @bg}] + line}
-          end
-        else
-          wrapped_rows(msg[:role], msg[:text]).each do |line|
-            rows << {x: 0, segments: line}
-          end
-        end
-        rows << {x: 0, fg: @text_fg, text: ""}
+        rows.concat(message_rows(msg))
       end
       @rendered_rows_width = width
       @rendered_rows_cache = rows
+    end
+
+    def visible_rows
+      return tail_rows(rh) if @scroll.zero?
+      rows = rendered_rows
+      start = [rows.length - rh - @scroll, 0].max
+      rows[start, rh] || []
+    end
+
+    def tail_rows(limit)
+      rows = []
+      index = @messages.length - 1
+      while index >= 0 && rows.length < limit
+        rows = message_rows(@messages[index]) + rows
+        index -= 1
+      end
+      rows.length > limit ? rows[-limit, limit] : rows
+    end
+
+    def message_rows(msg)
+      width = content_width
+      return msg[:rows_cache] if msg[:rows_cache] && msg[:rows_width] == width
+
+      rows = []
+      if @roles
+        label = @labels[msg[:role]] || msg[:role].to_s
+        rows << {x: 0, fg: role_fg(msg[:role]), text: " #{label}:"}
+        wrapped_rows(msg[:role], msg[:text]).each do |line|
+          rows << {x: 1, segments: [{text: " ", fg: @text_fg, bg: @bg}] + line}
+        end
+      else
+        wrapped_rows(msg[:role], msg[:text]).each do |line|
+          rows << {x: 0, segments: line}
+        end
+      end
+      rows << {x: 0, fg: @text_fg, text: ""}
+      msg[:rows_width] = width
+      msg[:rows_cache] = rows
     end
   end
 end
