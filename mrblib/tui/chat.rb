@@ -48,8 +48,10 @@ module TUI
     #
     # @param [Object] role
     # @param [String, Array<Hash>, Hash] text
+    # @param [Boolean] follow Whether to scroll to the newest message
     # @return [void]
-    def append(role, text)
+    def append(role, text, follow: false)
+      rows_before = total_rows
       message = @messages[-1]
       if message && message[:role] == role
         message[:text] = merge_text(message[:text], text)
@@ -58,8 +60,8 @@ module TUI
       else
         @messages << {role: role, text: dup_text(text)}
       end
-      @scroll = 0
       invalidate_rows
+      follow ? follow! : preserve_scroll(rows_before)
     end
 
     ##
@@ -68,8 +70,10 @@ module TUI
     #
     # @param [Object] role
     # @param [String, Array<Hash>, Hash] text
+    # @param [Boolean] follow Whether to scroll to the newest message
     # @return [void]
-    def replace_last(role, text)
+    def replace_last(role, text, follow: false)
+      rows_before = total_rows
       message = @messages[-1]
       if message && message[:role] == role
         message[:text] = dup_text(text)
@@ -78,8 +82,8 @@ module TUI
       else
         @messages << {role: role, text: dup_text(text)}
       end
-      @scroll = 0
       invalidate_rows
+      follow ? follow! : preserve_scroll(rows_before)
     end
 
     ##
@@ -130,6 +134,13 @@ module TUI
       rh.times do |dy|
         TUI.print(ax, ay + dy, @text_fg, @bg, blank)
       end
+    end
+
+    def preserve_scroll(rows_before)
+      rows_after = total_rows
+      @scroll += rows_after - rows_before
+      max_scroll = [rows_after - rh, 0].max
+      @scroll = [[@scroll, 0].max, max_scroll].min
     end
 
     def role_fg(role)

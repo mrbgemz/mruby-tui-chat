@@ -56,13 +56,19 @@ streaming output where content arrives incrementally.
 **TUI::Chat#replace_last**<br>
 Replaces the last message for the given role. Used for
 updating a streaming response in place. Messages may be plain strings,
-segment arrays, or markdown AST hashes from mruby-markdown.
+segment arrays, or markdown AST hashes from mruby-markdown. Pass
+`follow: true` to scroll to the newest message while replacing
+the message.
 
 **TUI::Chat#scroll_up**<br>
 Scrolls the view upward by one rendered row.
 
 **TUI::Chat#scroll_down**<br>
 Scrolls the view downward by one rendered row.
+
+**TUI::Chat#append** and **TUI::Chat#replace_last**<br>
+Both methods preserve the current visible viewport by default. Pass
+`follow: true` when an update should pull the viewport to the bottom.
 
 **TUI::Chat#follow!**<br>
 Returns the viewport to the newest message. This is useful after manual
