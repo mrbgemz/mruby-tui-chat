@@ -90,16 +90,58 @@ module TUI
     # Scroll upward by one rendered row.
     # @return [void]
     def scroll_up
-      max_r = total_rows
-      body = rh
-      @scroll = [@scroll + 1, max_r - body].min if max_r > body
+      scroll_by(1)
     end
 
     ##
     # Scroll downward by one rendered row.
     # @return [void]
     def scroll_down
-      @scroll = [@scroll - 1, 0].max
+      scroll_by(-1)
+    end
+
+    ##
+    # Scroll by rendered rows.
+    # @param [Integer] delta Positive values move toward older rows.
+    # @return [Integer] The number of rows actually moved.
+    def scroll_by(delta)
+      before = @scroll
+      max_scroll = [total_rows - rh, 0].max
+      @scroll = [[@scroll + delta.to_i, 0].max, max_scroll].min
+      @scroll - before
+    end
+
+    ##
+    # Scroll and repaint only the rows exposed by that movement.
+    # @param [Integer] delta Positive values move toward older rows.
+    # @return [Boolean] true when the terminal-scroll path was used
+    def scroll_render(delta)
+      return false if rw <= 0 || rh <= 1
+      moved = scroll_by(delta)
+      return false if moved.zero? || moved.abs >= rh
+
+      rows = visible_rows
+      physical = -moved
+      TUI.scroll_region(ay, rh, physical)
+
+      if moved.positive?
+        moved.times do |dy|
+          row = rows[dy]
+          clear_row(dy)
+          render_row(row, dy) if row
+        end
+      else
+        start = rh + moved
+        (-moved).times do |index|
+          dy = start + index
+          row = rows[dy]
+          clear_row(dy)
+          render_row(row, dy) if row
+        end
+      end
+
+      TUI.present
+      true
     end
 
     ##
@@ -132,8 +174,12 @@ module TUI
     def paint_background
       blank = " " * rw
       rh.times do |dy|
-        TUI.print(ax, ay + dy, @text_fg, @bg, blank)
+        clear_row(dy)
       end
+    end
+
+    def clear_row(dy)
+      TUI.print(ax, ay + dy, @text_fg, @bg, " " * rw)
     end
 
     def preserve_scroll(rows_before)
