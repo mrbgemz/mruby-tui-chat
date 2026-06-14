@@ -269,12 +269,19 @@ module TUI
           end
           text = segment[:text].to_s
           next if text.empty?
-          TUI.print(x, ay + dy, segment[:fg], segment[:bg] || @bg, text)
-          x += TUI.char_length(text)
+          x += TUI.set_cells(x, ay + dy, text, segment_fg(segment), segment[:bg] || @bg)
         end
       else
         TUI.print(ax + row[:x], ay + dy, row[:fg], @bg, row[:text])
       end
+    end
+
+    def segment_fg(segment)
+      fg = TUI.color(segment[:fg] || @text_fg)
+      fg |= TUI::Attr::BOLD if segment[:bold]
+      fg |= TUI::Attr::ITALIC if segment[:italic]
+      fg |= TUI::Attr::UNDERLINE if segment[:underline]
+      fg
     end
 
     def preformatted?(paragraph)
