@@ -2,6 +2,6 @@
 
 module TUI
   class Chat
-    VERSION = "0.3.1.beta.3"
+    VERSION = "0.4.0"
   end
 end
